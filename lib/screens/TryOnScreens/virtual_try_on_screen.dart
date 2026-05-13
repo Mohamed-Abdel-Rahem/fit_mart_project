@@ -892,7 +892,7 @@ Only output the final edited image. Do NOT include any text in the response.
         child: isAnyLoading
             ? Center(
                 child: CircularProgressIndicator(
-                  strokeWidth: 3,
+                  strokeWidth: 3.5,
                   color: colorScheme.primary,
                 ),
               )

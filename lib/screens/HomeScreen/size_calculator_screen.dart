@@ -23,14 +23,13 @@ class _SizeCalculatorScreenState extends State<SizeCalculatorScreen> {
   String? _recommendedSize;
   String? _fitNotes;
 
-  // Loading states
   bool _isSaving = false;
-  bool _isLoadingData = true; // NEW: Track initial load state
+  bool _isLoadingData = true;
 
   @override
   void initState() {
     super.initState();
-    _loadSavedMeasurements(); // NEW: Fetch data when screen loads
+    _loadSavedMeasurements();
   }
 
   @override
@@ -41,7 +40,6 @@ class _SizeCalculatorScreenState extends State<SizeCalculatorScreen> {
     super.dispose();
   }
 
-  // --- NEW: FIREBASE LOADING LOGIC ---
   Future<void> _loadSavedMeasurements() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -73,8 +71,6 @@ class _SizeCalculatorScreenState extends State<SizeCalculatorScreen> {
               }
             });
 
-            // If we successfully loaded measurements, calculate the size immediately
-            // so the user sees their results without pressing the button.
             if (_chestController.text.isNotEmpty &&
                 _waistController.text.isNotEmpty &&
                 _hipsController.text.isNotEmpty) {
@@ -84,8 +80,7 @@ class _SizeCalculatorScreenState extends State<SizeCalculatorScreen> {
         }
       }
     } catch (e) {
-      debugPrint("Error loading measurements: $e");
-      // Optionally show a snackbar here, but silently failing on load is often better UX
+      debugPrint(e.toString());
     } finally {
       if (mounted) {
         setState(() {
@@ -95,7 +90,6 @@ class _SizeCalculatorScreenState extends State<SizeCalculatorScreen> {
     }
   }
 
-  // UPDATED: Added skipValidation flag for initial data loading
   void _calculateAdvancedSize({bool skipValidation = false}) {
     if (!skipValidation) {
       if (!_formKey.currentState!.validate()) return;
@@ -164,7 +158,6 @@ class _SizeCalculatorScreenState extends State<SizeCalculatorScreen> {
     return thresholds.length;
   }
 
-  // --- FIREBASE SAVING LOGIC ---
   Future<void> _saveToFirestore() async {
     if (_recommendedSize == null) return;
 
@@ -217,6 +210,74 @@ class _SizeCalculatorScreenState extends State<SizeCalculatorScreen> {
     }
   }
 
+  void _showMeasurementGuide(String type) {
+    String title = '';
+    String description = '';
+    IconData icon = Icons.accessibility;
+
+    switch (type) {
+      case 'Chest / Bust':
+        title = 'How to Measure Chest';
+        description =
+            'Wrap the tape around the fullest part of your chest while keeping it level and relaxed.';
+        icon = Icons.accessibility_new;
+        break;
+      case 'Waist':
+        title = 'How to Measure Waist';
+        description =
+            'Measure around the narrowest part of your waist, usually above your belly button.';
+        icon = Icons.horizontal_rule;
+        break;
+      case 'Hips':
+        title = 'How to Measure Hips';
+        description =
+            'Measure around the widest part of your hips while standing naturally.';
+        icon = Icons.tune;
+        break;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) {
+        final colorScheme = Theme.of(context).colorScheme;
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0, end: 1),
+                duration: const Duration(milliseconds: 600),
+                curve: Curves.elasticOut,
+                builder: (context, value, child) => Transform.scale(
+                  scale: value,
+                  child: Icon(icon, size: 80, color: colorScheme.primary),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                description,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildThemedInputCard({
     required BuildContext context,
     required ColorScheme colorScheme,
@@ -251,19 +312,15 @@ class _SizeCalculatorScreenState extends State<SizeCalculatorScreen> {
                     children: [
                       Text(
                         title,
-
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: colorScheme.onSurface,
                             ),
                       ),
-
                       const SizedBox(width: 6),
-
                       GestureDetector(
                         onTap: () => _showMeasurementGuide(title),
-
                         child: Icon(
                           Icons.info_outline,
                           size: 18,
@@ -309,83 +366,6 @@ class _SizeCalculatorScreenState extends State<SizeCalculatorScreen> {
     );
   }
 
-  void _showMeasurementGuide(String type) {
-    String title = '';
-    String description = '';
-    IconData icon = Icons.accessibility;
-
-    switch (type) {
-      case 'Chest / Bust':
-        title = 'How to Measure Chest';
-        description =
-            'Wrap the tape around the fullest part of your chest while keeping it level and relaxed.';
-        icon = Icons.accessibility_new;
-        break;
-
-      case 'Waist':
-        title = 'How to Measure Waist';
-        description =
-            'Measure around the narrowest part of your waist, usually above your belly button.';
-        icon = Icons.horizontal_rule;
-        break;
-
-      case 'Hips':
-        title = 'How to Measure Hips';
-        description =
-            'Measure around the widest part of your hips while standing naturally.';
-        icon = Icons.tune;
-        break;
-    }
-
-    showModalBottomSheet(
-      context: context,
-
-      backgroundColor: Theme.of(context).colorScheme.surface,
-
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-
-      builder: (context) {
-        final colorScheme = Theme.of(context).colorScheme;
-
-        return Padding(
-          padding: const EdgeInsets.all(24.0),
-
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-
-            children: [
-              Icon(icon, size: 60, color: colorScheme.primary),
-
-              const SizedBox(height: 16),
-
-              Text(
-                title,
-
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              Text(
-                description,
-
-                textAlign: TextAlign.center,
-
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-
-              const SizedBox(height: 24),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -404,7 +384,6 @@ class _SizeCalculatorScreenState extends State<SizeCalculatorScreen> {
           ),
         ),
       ),
-      // NEW: Show a loading indicator while fetching from Firebase
       body: _isLoadingData
           ? Center(child: CircularProgressIndicator(color: colorScheme.primary))
           : SingleChildScrollView(
@@ -414,31 +393,33 @@ class _SizeCalculatorScreenState extends State<SizeCalculatorScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      child: Column(
-                        children: [
-                          Text(
-                            'Enter Measurements',
-                            style: theme.textTheme.headlineMedium?.copyWith(
-                              color: colorScheme.onSurface,
-                              fontWeight: FontWeight.bold,
+                    FadeInUp(
+                      duration: const Duration(milliseconds: 600),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Column(
+                          children: [
+                            Text(
+                              'Enter Measurements',
+                              style: theme.textTheme.headlineMedium?.copyWith(
+                                color: colorScheme.onSurface,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Get personalized AI sizing recommendations',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
+                            const SizedBox(height: 8),
+                            Text(
+                              'Get personalized AI sizing recommendations',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
-
                     SegmentedButton<Gender>(
                       segments: const [
                         ButtonSegment(
@@ -466,7 +447,6 @@ class _SizeCalculatorScreenState extends State<SizeCalculatorScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-
                     _buildThemedInputCard(
                       context: context,
                       colorScheme: colorScheme,
@@ -492,7 +472,6 @@ class _SizeCalculatorScreenState extends State<SizeCalculatorScreen> {
                       controller: _hipsController,
                     ),
                     const SizedBox(height: 24),
-
                     ElevatedButton(
                       onPressed: _calculateAdvancedSize,
                       style: ElevatedButton.styleFrom(
@@ -512,10 +491,11 @@ class _SizeCalculatorScreenState extends State<SizeCalculatorScreen> {
                         ),
                       ),
                     ),
-
+                    const SizedBox(height: 24),
                     AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 500),
-
+                      duration: const Duration(milliseconds: 600),
+                      switchInCurve: Curves.easeIn,
+                      switchOutCurve: Curves.easeIn,
                       transitionBuilder: (child, animation) {
                         return FadeTransition(
                           opacity: animation,
@@ -525,26 +505,21 @@ class _SizeCalculatorScreenState extends State<SizeCalculatorScreen> {
                           ),
                         );
                       },
-
                       child: _recommendedSize != null
                           ? Card(
                               key: ValueKey(_recommendedSize),
-
                               color: colorScheme.primaryContainer,
-                              elevation: 6,
-
+                              elevation: 10,
+                              shadowColor: colorScheme.primary.withOpacity(0.3),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
+                                borderRadius: BorderRadius.circular(24),
                               ),
-
                               child: Padding(
                                 padding: const EdgeInsets.all(24.0),
-
                                 child: Column(
                                   children: [
                                     Text(
                                       'Your Smart Fit',
-
                                       style: theme.textTheme.titleMedium
                                           ?.copyWith(
                                             color:
@@ -552,59 +527,49 @@ class _SizeCalculatorScreenState extends State<SizeCalculatorScreen> {
                                             fontWeight: FontWeight.bold,
                                           ),
                                     ),
-
                                     const SizedBox(height: 8),
-
                                     Text(
                                       _recommendedSize!,
-
                                       style: theme.textTheme.headlineLarge
                                           ?.copyWith(
                                             color: colorScheme.primary,
                                             fontWeight: FontWeight.bold,
+                                            letterSpacing: 1.2,
                                           ),
                                     ),
-
                                     const Padding(
                                       padding: EdgeInsets.symmetric(
-                                        vertical: 16.0,
+                                        vertical: 20.0,
                                       ),
-                                      child: Divider(height: 1),
+                                      child: Divider(thickness: 1.5, height: 1),
                                     ),
-
                                     Row(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
-
                                       children: [
                                         Icon(
                                           Icons.auto_awesome,
                                           color: colorScheme.primary,
-                                          size: 24,
+                                          size: 28,
                                         ),
-
                                         const SizedBox(width: 16),
-
                                         Expanded(
                                           child: Text(
                                             _fitNotes!,
-
                                             style: theme.textTheme.bodyMedium
                                                 ?.copyWith(
                                                   color: colorScheme
                                                       .onPrimaryContainer,
-                                                  height: 1.4,
+                                                  height: 1.5,
+                                                  fontSize: 15,
                                                 ),
                                           ),
                                         ),
                                       ],
                                     ),
-
                                     const SizedBox(height: 24),
-
                                     SizedBox(
                                       width: double.infinity,
-
                                       child: _isSaving
                                           ? Center(
                                               child: CircularProgressIndicator(
@@ -613,32 +578,26 @@ class _SizeCalculatorScreenState extends State<SizeCalculatorScreen> {
                                             )
                                           : OutlinedButton.icon(
                                               onPressed: _saveToFirestore,
-
                                               icon: const Icon(
                                                 Icons.cloud_upload,
                                               ),
-
                                               label: const Text(
                                                 'Save to My Profile',
                                               ),
-
                                               style: OutlinedButton.styleFrom(
                                                 foregroundColor:
                                                     colorScheme.primary,
-
                                                 side: BorderSide(
                                                   color: colorScheme.primary,
                                                   width: 2,
                                                 ),
-
                                                 padding:
                                                     const EdgeInsets.symmetric(
-                                                      vertical: 14,
+                                                      vertical: 16,
                                                     ),
-
                                                 shape: RoundedRectangleBorder(
                                                   borderRadius:
-                                                      BorderRadius.circular(12),
+                                                      BorderRadius.circular(16),
                                                 ),
                                               ),
                                             ),
@@ -654,6 +613,31 @@ class _SizeCalculatorScreenState extends State<SizeCalculatorScreen> {
                 ),
               ),
             ),
+    );
+  }
+}
+
+class FadeInUp extends StatelessWidget {
+  final Widget child;
+  final Duration duration;
+
+  const FadeInUp({super.key, required this.child, required this.duration});
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: duration,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: child,
     );
   }
 }
