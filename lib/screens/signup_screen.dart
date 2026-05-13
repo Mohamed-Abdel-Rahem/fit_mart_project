@@ -1,10 +1,11 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloudinary_sdk/cloudinary_sdk.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fitsmart/app_routes.dart';
 import 'package:fitsmart/cloudinary.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image/image.dart' as img;
@@ -19,12 +20,14 @@ class SignUpScreen extends StatefulWidget {
   State<SignUpScreen> createState() => _SignUpScreenState();
 }
 
-class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderStateMixin {
+class _SignUpScreenState extends State<SignUpScreen>
+    with SingleTickerProviderStateMixin {
   late TextEditingController _nameController;
   final TextEditingController _phoneController = TextEditingController();
   late TextEditingController _emailController;
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -75,9 +78,9 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
       if (!_isPrefilled) {
         UserCredential credential = await FirebaseAuth.instance
             .createUserWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
-        );
+              email: _emailController.text.trim(),
+              password: _passwordController.text.trim(),
+            );
         user = credential.user;
       } else {
         user = FirebaseAuth.instance.currentUser;
@@ -99,7 +102,9 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
       await FirebaseFirestore.instance.collection('Users').doc(user.uid).set({
         'name': _nameController.text.trim(),
         'phone': _phoneController.text.trim(),
-        'email': _isPrefilled ? widget.prefillEmail : _emailController.text.trim(),
+        'email': _isPrefilled
+            ? widget.prefillEmail
+            : _emailController.text.trim(),
         'photoUrl': user.photoURL ?? '',
         'createdAt': FieldValue.serverTimestamp(),
       });
@@ -114,7 +119,9 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
   }
 
   void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -191,30 +198,63 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                         ),
                         const SizedBox(height: 24),
                         _buildLabel(theme, colorScheme, 'Name'),
-                        _buildField(_nameController, 'Enter your name', colorScheme),
+                        _buildField(
+                          _nameController,
+                          'Enter your name',
+                          colorScheme,
+                        ),
                         const SizedBox(height: 16),
                         _buildLabel(theme, colorScheme, 'Phone Number'),
-                        _buildField(_phoneController, 'Enter phone number', colorScheme, type: TextInputType.phone),
+                        _buildField(
+                          _phoneController,
+                          'Enter phone number',
+                          colorScheme,
+                          type: TextInputType.phone,
+                        ),
                         if (!_isPrefilled) ...[
                           const SizedBox(height: 16),
                           _buildLabel(theme, colorScheme, 'Email Address'),
-                          _buildField(_emailController, 'Enter email address', colorScheme, type: TextInputType.emailAddress),
+                          _buildField(
+                            _emailController,
+                            'Enter email address',
+                            colorScheme,
+                            type: TextInputType.emailAddress,
+                          ),
                           const SizedBox(height: 16),
                           _buildLabel(theme, colorScheme, 'Password'),
-                          _buildField(_passwordController, 'Enter password', colorScheme, 
+                          _buildField(
+                            _passwordController,
+                            'Enter password',
+                            colorScheme,
                             obscure: _obscurePassword,
                             suffix: IconButton(
-                              icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                              onPressed: () => setState(
+                                () => _obscurePassword = !_obscurePassword,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 16),
                           _buildLabel(theme, colorScheme, 'Confirm Password'),
-                          _buildField(_confirmPasswordController, 'Re-enter password', colorScheme, 
+                          _buildField(
+                            _confirmPasswordController,
+                            'Re-enter password',
+                            colorScheme,
                             obscure: _obscureConfirmPassword,
                             suffix: IconButton(
-                              icon: Icon(_obscureConfirmPassword ? Icons.visibility_off : Icons.visibility),
-                              onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                              icon: Icon(
+                                _obscureConfirmPassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                              onPressed: () => setState(
+                                () => _obscureConfirmPassword =
+                                    !_obscureConfirmPassword,
+                              ),
                             ),
                           ),
                         ],
@@ -237,11 +277,21 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
   Widget _buildLabel(ThemeData theme, ColorScheme colorScheme, String label) {
     return Text(
       label,
-      style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, color: colorScheme.onSurface),
+      style: theme.textTheme.bodyLarge?.copyWith(
+        fontWeight: FontWeight.bold,
+        color: colorScheme.onSurface,
+      ),
     );
   }
 
-  Widget _buildField(TextEditingController controller, String hint, ColorScheme colorScheme, {bool obscure = false, TextInputType? type, Widget? suffix}) {
+  Widget _buildField(
+    TextEditingController controller,
+    String hint,
+    ColorScheme colorScheme, {
+    bool obscure = false,
+    TextInputType? type,
+    Widget? suffix,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(top: 4),
       child: TextField(
@@ -253,9 +303,18 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
           fillColor: colorScheme.surfaceContainerLow,
           hintText: hint,
           suffixIcon: suffix,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: colorScheme.outlineVariant)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: colorScheme.primary, width: 2)),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: colorScheme.outlineVariant),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: colorScheme.primary, width: 2),
+          ),
         ),
       ),
     );
@@ -270,10 +329,15 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
         style: ElevatedButton.styleFrom(
           backgroundColor: colorScheme.primary,
           foregroundColor: colorScheme.onPrimary,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           elevation: 4,
         ),
-        child: Text(_isPrefilled ? 'Complete Profile' : 'Create Account', style: const TextStyle(fontWeight: FontWeight.bold)),
+        child: Text(
+          _isPrefilled ? 'Complete Profile' : 'Create Account',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }
@@ -284,11 +348,16 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
       child: Text.rich(
         TextSpan(
           text: 'Already have an account? ',
-          style: theme.textTheme.bodyLarge?.copyWith(color: colorScheme.onSurface),
+          style: theme.textTheme.bodyLarge?.copyWith(
+            color: colorScheme.onSurface,
+          ),
           children: [
             TextSpan(
               text: 'Login',
-              style: theme.textTheme.bodyLarge?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.bold),
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
@@ -380,14 +449,19 @@ class _CustomImagePickerState extends State<CustomImagePicker> {
             backgroundColor: colorScheme.surfaceContainerHighest,
             backgroundImage: _pickedImage != null
                 ? FileImage(File(_pickedImage!.path))
-                : (_uploadedImageUrl != null || (widget.currentImageUrl?.isNotEmpty ?? false))
-                    ? NetworkImage(_uploadedImageUrl ?? widget.currentImageUrl!)
-                    : const AssetImage('assets/images/default_avatar.png') as ImageProvider,
+                : (_uploadedImageUrl != null ||
+                      (widget.currentImageUrl?.isNotEmpty ?? false))
+                ? NetworkImage(_uploadedImageUrl ?? widget.currentImageUrl!)
+                : const AssetImage('assets/images/default_avatar.png')
+                      as ImageProvider,
           ),
           if (_isLoading)
             Positioned.fill(
               child: Container(
-                decoration: const BoxDecoration(color: Colors.black26, shape: BoxShape.circle),
+                decoration: const BoxDecoration(
+                  color: Colors.black26,
+                  shape: BoxShape.circle,
+                ),
                 child: const Center(child: CircularProgressIndicator()),
               ),
             ),
@@ -397,8 +471,15 @@ class _CustomImagePickerState extends State<CustomImagePicker> {
               right: 5,
               child: Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: colorScheme.primary, shape: BoxShape.circle),
-                child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                decoration: BoxDecoration(
+                  color: colorScheme.primary,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.camera_alt,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
             ),
         ],

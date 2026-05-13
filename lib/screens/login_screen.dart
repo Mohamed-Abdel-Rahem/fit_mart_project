@@ -1,5 +1,7 @@
 // lib/screens/login_screen.dart
 
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fitsmart/app_routes.dart';
@@ -63,9 +65,12 @@ class _LoginScreenState extends State<LoginScreen> {
           Navigator.pushReplacementNamed(context, AppRoutes.home);
         } else {
           await FirebaseAuth.instance.signOut();
+
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Login failed: Profile data missing. Please sign up.'),
+              content: Text(
+                'Login failed: Profile data missing. Please sign up.',
+              ),
             ),
           );
         }
@@ -79,7 +84,9 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         errorMsg = 'Login Error: ${e.message}';
       }
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMsg)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(errorMsg)));
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('An unexpected error occurred: $e')),
@@ -104,9 +111,9 @@ class _LoginScreenState extends State<LoginScreen> {
     );
 
     if (_authService.lastError != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_authService.lastError!)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_authService.lastError!)));
       _authService.lastError = null;
     }
   }
@@ -153,7 +160,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 500),
                     curve: Curves.easeOut,
-                    transform: Matrix4.translationValues(0, _isVisible ? 0 : 20, 0),
+                    transform: Matrix4.translationValues(
+                      0,
+                      _isVisible ? 0 : 20,
+                      0,
+                    ),
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
@@ -323,7 +334,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 10),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                              ),
                               child: Text(
                                 'OR',
                                 style: theme.textTheme.bodyMedium?.copyWith(
@@ -353,7 +366,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   decoration: BoxDecoration(
                                     color: colorScheme.surface,
                                     shape: BoxShape.circle,
-                                    border: Border.all(color: colorScheme.outline),
+                                    border: Border.all(
+                                      color: colorScheme.outline,
+                                    ),
                                   ),
                                   child: Center(
                                     child: Icon(
@@ -374,7 +389,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   Center(
                     child: TextButton(
                       onPressed: () {
-                        Navigator.pushReplacementNamed(context, AppRoutes.signup);
+                        Navigator.pushReplacementNamed(
+                          context,
+                          AppRoutes.signup,
+                        );
                       },
                       child: Text.rich(
                         TextSpan(

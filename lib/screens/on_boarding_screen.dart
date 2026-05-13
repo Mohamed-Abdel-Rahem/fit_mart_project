@@ -230,7 +230,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
 
     final titleAnimation =
         Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero).animate(
