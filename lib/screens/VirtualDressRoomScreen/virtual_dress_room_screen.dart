@@ -53,13 +53,15 @@ class VirtualDressRoomScreen extends StatelessWidget {
         backgroundColor: colorScheme.primaryContainer,
         elevation: 4,
         actions: [
-          // NEW BUTTON: Donation History
           IconButton(
-            icon: const Icon(Icons.history_toggle_off),
             onPressed: () => _goToDonationHistory(context),
-            tooltip: 'View Donation History',
+            icon: Image.asset(
+              'assets/icon/donate_icon.png',
+              color: colorScheme.primary,
+              height: 25,
+              width: 25,
+            ),
           ),
-          const SizedBox(width: 8),
         ],
       ),
       body: Padding(
