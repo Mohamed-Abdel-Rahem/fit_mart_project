@@ -61,14 +61,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
-  void _goPrevious() {
-    if (_currentPage > 0) {
-      _pageController.previousPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    }
-  }
+  // void _goPrevious() {
+  //   if (_currentPage > 0) {
+  //     _pageController.previousPage(
+  //       duration: const Duration(milliseconds: 300),
+  //       curve: Curves.easeInOut,
+  //     );
+  //   }
+  // }
 
   void _skip() {
     Navigator.pushReplacementNamed(context, AppRoutes.signup);
