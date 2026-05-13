@@ -1,5 +1,3 @@
-// ignore_for_file: use_build_context_synchronously
-
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloudinary_sdk/cloudinary_sdk.dart';
@@ -9,11 +7,9 @@ import 'package:fitsmart/cloudinary.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-// ignore: depend_on_referenced_packages
 import 'package:image/image.dart' as img;
 
 class SignUpScreen extends StatefulWidget {
-  // Optional prefill values (if coming from Google, for example)
   final String? prefillName;
   final String? prefillEmail;
 
@@ -23,56 +19,53 @@ class SignUpScreen extends StatefulWidget {
   State<SignUpScreen> createState() => _SignUpScreenState();
 }
 
-class _SignUpScreenState extends State<SignUpScreen> {
-  // Text controllers
+class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderStateMixin {
   late TextEditingController _nameController;
   final TextEditingController _phoneController = TextEditingController();
   late TextEditingController _emailController;
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController =
-      TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
 
-  // Password visibility states
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
-
   String? _photoUrl;
-
-  // A helper getter: if prefillEmail is provided, we consider that the user is already created via an external provider (like Google).
   bool get _isPrefilled => widget.prefillEmail != null;
+
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.prefillName ?? '');
     _emailController = TextEditingController(text: widget.prefillEmail ?? '');
+
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeIn,
+    );
+    _animationController.forward();
   }
 
-  /// Either creates a new client account (if no prefill) or updates the Firestore
-  /// document for the already-authenticated user.
   Future<void> _createAccount() async {
-    // Check common required fields.
     if (_nameController.text.isEmpty || _phoneController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all required fields.')),
-      );
+      _showSnackBar('Please fill in all required fields.');
       return;
     }
 
-    // If not prefilled (i.e., standard email/password sign-up), validate credentials.
     if (!_isPrefilled) {
       if (_emailController.text.isEmpty ||
           _passwordController.text.isEmpty ||
           _confirmPasswordController.text.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please fill in all required fields.')),
-        );
+        _showSnackBar('Please fill in all required fields.');
         return;
       }
       if (_passwordController.text != _confirmPasswordController.text) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Passwords do not match.')),
-        );
+        _showSnackBar('Passwords do not match.');
         return;
       }
     }
@@ -80,29 +73,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
     try {
       User? user;
       if (!_isPrefilled) {
-        // Create new user using email and password.
         UserCredential credential = await FirebaseAuth.instance
             .createUserWithEmailAndPassword(
-              email: _emailController.text.trim(),
-              password: _passwordController.text.trim(),
-            );
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+        );
         user = credential.user;
       } else {
-        // User is already authenticated (e.g., via Google)
         user = FirebaseAuth.instance.currentUser;
       }
+
       if (user == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('An error occurred during account creation.'),
-          ),
-        );
+        _showSnackBar('An error occurred during account creation.');
         return;
       }
 
-      // Update displayName using the entered name (non-deprecated method)
       await user.updateDisplayName(_nameController.text.trim());
-
       if (!_isPrefilled && _photoUrl != null) {
         await user.updatePhotoURL(_photoUrl);
       }
@@ -110,40 +96,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
       await user.reload();
       user = FirebaseAuth.instance.currentUser!;
 
-      // Save/Update user data in the Users collection
       await FirebaseFirestore.instance.collection('Users').doc(user.uid).set({
         'name': _nameController.text.trim(),
         'phone': _phoneController.text.trim(),
-        'email': _isPrefilled
-            ? widget.prefillEmail
-            : _emailController.text.trim(),
+        'email': _isPrefilled ? widget.prefillEmail : _emailController.text.trim(),
         'photoUrl': user.photoURL ?? '',
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      // Navigate to the home screen after successful sign-up/profile completion (UPDATED ROUTE)
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Account created successfully! Welcome!')),
-      );
-      // We use pushReplacement to navigate straight to the home screen
+      _showSnackBar('Account created successfully! Welcome!');
       Navigator.pushReplacementNamed(context, AppRoutes.home);
     } on FirebaseAuthException catch (e) {
-      String errorMsg = '';
-      if (e.code == 'weak-password') {
-        errorMsg = 'The password provided is too weak.';
-      } else if (e.code == 'email-already-in-use') {
-        errorMsg = 'The email address is already in use by another account.';
-      } else {
-        errorMsg = 'Error: ${e.message}';
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(errorMsg)));
+      _showSnackBar(e.message ?? 'Auth Error');
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error creating account: $e')));
+      _showSnackBar('Error: $e');
     }
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -153,6 +124,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 
@@ -160,393 +132,165 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final screenWidth = MediaQuery.of(context).size.width;
 
-    // Directionality is set to LTR (English standard)
     return Directionality(
       textDirection: TextDirection.ltr,
       child: Scaffold(
-        backgroundColor: colorScheme.surface, // Replaced colorScheme.background
-        body: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 60),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Title & Subtitle
-                Center(
-                  child: Text(
-                    'Client Registration',
-                    style: theme.textTheme.headlineLarge?.copyWith(
-                      color: colorScheme.onSurface, // Changed to onSurface
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Center(
-                  child: Text(
-                    'Welcome! Please create a new account.',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      color: colorScheme.onSurface.withAlpha(
-                        179,
-                      ), // Changed to onSurface
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 30),
-                // Form container
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    color: colorScheme.surface,
-                    boxShadow: [
-                      BoxShadow(
-                        color: colorScheme.shadow.withAlpha(
-                          26,
-                        ), // Fixed deprecated withOpacity
-                        blurRadius: 10,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Center(
-                        child: CustomImagePicker(
-                          currentImageUrl: _isPrefilled
-                              ? FirebaseAuth.instance.currentUser?.photoURL
-                              : null,
-                          onImageUploaded: (url) {
-                            _photoUrl = url;
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      // Name
-                      Text(
-                        'Name',
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme.onSurface,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      TextField(
-                        controller: _nameController,
-                        textAlign: TextAlign.left,
-                        style: TextStyle(color: colorScheme.onSurface),
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: colorScheme
-                              .surfaceContainerLow, // Replaced colorScheme.background
-                          hintText: 'Enter your name',
-                          hintStyle: TextStyle(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                          contentPadding: const EdgeInsets.all(12),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(
-                              color: colorScheme.outline,
-                              width: 1,
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(
-                              color: colorScheme.outline,
-                              width: 1,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(
-                              color: colorScheme.primary,
-                              width: 2,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      // Phone
-                      Text(
-                        'Phone Number',
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme.onSurface,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      TextField(
-                        controller: _phoneController,
-                        textAlign: TextAlign.left,
-                        keyboardType: TextInputType.phone,
-                        style: TextStyle(color: colorScheme.onSurface),
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: colorScheme
-                              .surfaceContainerLow, // Replaced colorScheme.background
-                          hintText: 'Enter phone number',
-                          hintStyle: TextStyle(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                          contentPadding: const EdgeInsets.all(12),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(
-                              color: colorScheme.outline,
-                              width: 1,
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(
-                              color: colorScheme.outline,
-                              width: 1,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(
-                              color: colorScheme.primary,
-                              width: 2,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      if (!_isPrefilled) ...[
-                        // Email
+        backgroundColor: colorScheme.surface,
+        body: FadeTransition(
+          opacity: _fadeAnimation,
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 60),
+              child: Column(
+                children: [
+                  Center(
+                    child: Column(
+                      children: [
                         Text(
-                          'Email Address',
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
+                          'Client Registration',
+                          style: theme.textTheme.headlineLarge?.copyWith(
                             color: colorScheme.onSurface,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        TextField(
-                          controller: _emailController,
-                          textAlign: TextAlign.left,
-                          keyboardType: TextInputType.emailAddress,
-                          style: TextStyle(color: colorScheme.onSurface),
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: colorScheme
-                                .surfaceContainerLow, // Replaced colorScheme.background
-                            hintText: 'Enter email address',
-                            hintStyle: TextStyle(
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                            contentPadding: const EdgeInsets.all(12),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(
-                                color: colorScheme.outline,
-                                width: 1,
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(
-                                color: colorScheme.outline,
-                                width: 1,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(
-                                color: colorScheme.primary,
-                                width: 2,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Password Field
+                        const SizedBox(height: 8),
                         Text(
-                          'Password',
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: colorScheme.onSurface,
+                          'Welcome! Please create a new account.',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            color: colorScheme.onSurface.withAlpha(180),
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        TextField(
-                          controller: _passwordController,
-                          obscureText: _obscurePassword,
-                          textAlign: TextAlign.left,
-                          style: TextStyle(color: colorScheme.onSurface),
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: colorScheme
-                                .surfaceContainerLow, // Replaced colorScheme.background
-                            hintText: 'Enter password',
-                            hintStyle: TextStyle(
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                            contentPadding: const EdgeInsets.all(12),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(
-                                color: colorScheme.outline,
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(
-                                color: colorScheme.outline,
-                                width: 1,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(
-                                color: colorScheme.primary,
-                                width: 2,
-                              ),
-                            ),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Confirm Password Field
-                        Text(
-                          'Confirm Password',
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: colorScheme.onSurface,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        TextField(
-                          controller: _confirmPasswordController,
-                          obscureText: _obscureConfirmPassword,
-                          textAlign: TextAlign.left,
-                          style: TextStyle(color: colorScheme.onSurface),
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: colorScheme
-                                .surfaceContainerLow, // Replaced colorScheme.background
-                            hintText: 'Re-enter password',
-                            hintStyle: TextStyle(
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                            contentPadding: const EdgeInsets.all(12),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(
-                                color: colorScheme.outline,
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(
-                                color: colorScheme.outline,
-                                width: 1,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(
-                                color: colorScheme.primary,
-                                width: 2,
-                              ),
-                            ),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscureConfirmPassword
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _obscureConfirmPassword =
-                                      !_obscureConfirmPassword;
-                                });
-                              },
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
                       ],
-
-                      // Create Account / Complete Profile Button
-                      SizedBox(
-                        width: screenWidth,
-                        height:
-                            52, // Slightly increased height for better touch target
-                        child: ElevatedButton(
-                          onPressed: _createAccount,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: colorScheme.primary,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            elevation: 5, // Added elevation
-                            shadowColor: colorScheme.primary.withAlpha(150),
-                          ),
-                          child: Text(
-                            _isPrefilled
-                                ? 'Complete Profile'
-                                : 'Create Account',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: colorScheme.onPrimary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 20),
-                Center(
-                  child: TextButton(
-                    onPressed: () {
-                      Navigator.pushReplacementNamed(context, AppRoutes.login);
-                    },
-                    child: Text.rich(
-                      TextSpan(
-                        text: 'Already have an account? ',
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          color: colorScheme.onSurface, // Changed to onSurface
+                  const SizedBox(height: 30),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      color: colorScheme.surface,
+                      boxShadow: [
+                        BoxShadow(
+                          color: colorScheme.shadow.withAlpha(20),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
                         ),
-                        children: [
-                          TextSpan(
-                            text: 'Login',
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: colorScheme.primary,
-                              fontWeight: FontWeight.bold,
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Center(
+                          child: CustomImagePicker(
+                            currentImageUrl: _isPrefilled
+                                ? FirebaseAuth.instance.currentUser?.photoURL
+                                : null,
+                            onImageUploaded: (url) => _photoUrl = url,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        _buildLabel(theme, colorScheme, 'Name'),
+                        _buildField(_nameController, 'Enter your name', colorScheme),
+                        const SizedBox(height: 16),
+                        _buildLabel(theme, colorScheme, 'Phone Number'),
+                        _buildField(_phoneController, 'Enter phone number', colorScheme, type: TextInputType.phone),
+                        if (!_isPrefilled) ...[
+                          const SizedBox(height: 16),
+                          _buildLabel(theme, colorScheme, 'Email Address'),
+                          _buildField(_emailController, 'Enter email address', colorScheme, type: TextInputType.emailAddress),
+                          const SizedBox(height: 16),
+                          _buildLabel(theme, colorScheme, 'Password'),
+                          _buildField(_passwordController, 'Enter password', colorScheme, 
+                            obscure: _obscurePassword,
+                            suffix: IconButton(
+                              icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          _buildLabel(theme, colorScheme, 'Confirm Password'),
+                          _buildField(_confirmPasswordController, 'Re-enter password', colorScheme, 
+                            obscure: _obscureConfirmPassword,
+                            suffix: IconButton(
+                              icon: Icon(_obscureConfirmPassword ? Icons.visibility_off : Icons.visibility),
+                              onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
                             ),
                           ),
                         ],
-                      ),
+                        const SizedBox(height: 24),
+                        _buildSubmitButton(colorScheme, theme),
+                      ],
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 20),
+                  _buildLoginLink(theme, colorScheme),
+                ],
+              ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLabel(ThemeData theme, ColorScheme colorScheme, String label) {
+    return Text(
+      label,
+      style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, color: colorScheme.onSurface),
+    );
+  }
+
+  Widget _buildField(TextEditingController controller, String hint, ColorScheme colorScheme, {bool obscure = false, TextInputType? type, Widget? suffix}) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: TextField(
+        controller: controller,
+        obscureText: obscure,
+        keyboardType: type,
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: colorScheme.surfaceContainerLow,
+          hintText: hint,
+          suffixIcon: suffix,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: colorScheme.outlineVariant)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: colorScheme.primary, width: 2)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubmitButton(ColorScheme colorScheme, ThemeData theme) {
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: ElevatedButton(
+        onPressed: _createAccount,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          elevation: 4,
+        ),
+        child: Text(_isPrefilled ? 'Complete Profile' : 'Create Account', style: const TextStyle(fontWeight: FontWeight.bold)),
+      ),
+    );
+  }
+
+  Widget _buildLoginLink(ThemeData theme, ColorScheme colorScheme) {
+    return TextButton(
+      onPressed: () => Navigator.pushReplacementNamed(context, AppRoutes.login),
+      child: Text.rich(
+        TextSpan(
+          text: 'Already have an account? ',
+          style: theme.textTheme.bodyLarge?.copyWith(color: colorScheme.onSurface),
+          children: [
+            TextSpan(
+              text: 'Login',
+              style: theme.textTheme.bodyLarge?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.bold),
+            ),
+          ],
         ),
       ),
     );
@@ -555,14 +299,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
 class CustomImagePicker extends StatefulWidget {
   final String? currentImageUrl;
-  final double? imageSize;
-  // Callback to return the uploaded photo URL
+  final double imageSize;
   final void Function(String photoUrl) onImageUploaded;
 
   const CustomImagePicker({
     super.key,
     this.currentImageUrl,
-    this.imageSize,
+    this.imageSize = 80,
     required this.onImageUploaded,
   });
 
@@ -573,154 +316,93 @@ class CustomImagePicker extends StatefulWidget {
 class _CustomImagePickerState extends State<CustomImagePicker> {
   XFile? _pickedImage;
   String? _uploadedImageUrl;
-  final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
-  String? _errorMessage;
+  bool _isPickerActive = false;
 
   Future<void> _pickImage() async {
+    if (_isPickerActive) return;
+
+    setState(() => _isPickerActive = true);
+
     try {
-      final pickedImage = await _picker.pickImage(source: ImageSource.gallery);
-      if (pickedImage != null) {
-        setState(() {
-          _pickedImage = pickedImage;
-        });
-        await _uploadImageToCloudinary();
+      final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+      if (picked != null) {
+        setState(() => _pickedImage = picked);
+        await _uploadToCloudinary();
       }
-    } catch (error) {
-      setState(() {
-        _errorMessage = 'Error picking image: $error';
-      });
+    } finally {
+      setState(() => _isPickerActive = false);
     }
   }
 
-  Future<File> _resizeImage(File imageFile) async {
-    final bytes = await imageFile.readAsBytes();
-    final originalImage = img.decodeImage(bytes);
-
-    if (originalImage == null) {
-      throw Exception('Failed to decode image.');
-    }
-
-    // Resize the image (e.g., max width of 600px)
-    final resizedImage = img.copyResize(
-      originalImage,
-      width: 600, // Change this to your desired width
-    );
-
-    // Save the resized image to a temporary file
-    final tempDir = Directory.systemTemp;
-    final resizedFile = File('${tempDir.path}/resized_image.jpg');
-    resizedFile.writeAsBytesSync(img.encodeJpg(resizedImage, quality: 85));
-
-    return resizedFile;
-  }
-
-  Future<void> _uploadImageToCloudinary() async {
+  Future<void> _uploadToCloudinary() async {
     if (_pickedImage == null) return;
+    setState(() => _isLoading = true);
 
     try {
-      setState(() {
-        _isLoading = true;
-      });
+      final bytes = await File(_pickedImage!.path).readAsBytes();
+      final decoded = img.decodeImage(bytes);
+      if (decoded == null) return;
 
-      // Resize the image before uploading
-      final resizedImage = await _resizeImage(File(_pickedImage!.path));
+      final resized = img.copyResize(decoded, width: 500);
+      final tempFile = File('${Directory.systemTemp.path}/avatar.jpg')
+        ..writeAsBytesSync(img.encodeJpg(resized, quality: 85));
 
       final response = await cloudinary.uploadResource(
         CloudinaryUploadResource(
-          filePath: resizedImage.path,
+          filePath: tempFile.path,
           resourceType: CloudinaryResourceType.image,
         ),
       );
 
       if (response.isSuccessful) {
-        setState(() {
-          _uploadedImageUrl = response.secureUrl!;
-          if (kDebugMode) {
-            print(response.secureUrl!);
-          }
-        });
-
-        // Optionally update the user's profile picture URL if using FirebaseAuth
+        _uploadedImageUrl = response.secureUrl;
         final user = FirebaseAuth.instance.currentUser;
-        if (user != null) {
-          await user.updatePhotoURL(_uploadedImageUrl);
-        }
-        // Return the URL via callback
+        if (user != null) await user.updatePhotoURL(_uploadedImageUrl);
         widget.onImageUploaded(_uploadedImageUrl!);
-      } else {
-        setState(() {
-          _errorMessage = 'Error uploading image: ${response.error}';
-        });
       }
-    } catch (error) {
-      setState(() {
-        _errorMessage = 'Error uploading image: $error';
-      });
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  ImageProvider _getImageProvider() {
-    try {
-      if (_pickedImage != null) {
-        return FileImage(File(_pickedImage!.path));
-      } else if (_uploadedImageUrl != null) {
-        return NetworkImage(_uploadedImageUrl!);
-      } else if (widget.currentImageUrl != null &&
-          widget.currentImageUrl!.isNotEmpty) {
-        return NetworkImage(widget.currentImageUrl!);
-      } else {
-        return const AssetImage('assets/images/default_avatar.png');
-      }
-    } catch (error) {
-      return const AssetImage('assets/images/default_avatar.png');
-    }
-  }
-
-  bool _isUsingDefaultImage() {
-    return widget.currentImageUrl == null && _pickedImage == null;
   }
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Column(
-      children: [
-        if (_errorMessage != null)
-          Text(
-            _errorMessage!,
-            style: textTheme.bodyMedium?.copyWith(color: colorScheme.error),
+    return GestureDetector(
+      onTap: _isLoading || _isPickerActive ? null : _pickImage,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          CircleAvatar(
+            radius: widget.imageSize,
+            backgroundColor: colorScheme.surfaceContainerHighest,
+            backgroundImage: _pickedImage != null
+                ? FileImage(File(_pickedImage!.path))
+                : (_uploadedImageUrl != null || (widget.currentImageUrl?.isNotEmpty ?? false))
+                    ? NetworkImage(_uploadedImageUrl ?? widget.currentImageUrl!)
+                    : const AssetImage('assets/images/default_avatar.png') as ImageProvider,
           ),
-        GestureDetector(
-          onTap: _pickImage,
-          child: Stack(
-            children: [
-              CircleAvatar(
-                backgroundColor: Colors.white,
-                radius: widget.imageSize ?? 100,
-                backgroundImage: _getImageProvider(),
-                child: _isUsingDefaultImage() ? null : null,
+          if (_isLoading)
+            Positioned.fill(
+              child: Container(
+                decoration: const BoxDecoration(color: Colors.black26, shape: BoxShape.circle),
+                child: const Center(child: CircularProgressIndicator()),
               ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: Icon(Icons.camera_alt, color: colorScheme.primary),
+            ),
+          if (!_isLoading)
+            Positioned(
+              bottom: 5,
+              right: 5,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: colorScheme.primary, shape: BoxShape.circle),
+                child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
               ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        if (_isLoading)
-          CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
-          ),
-      ],
+            ),
+        ],
+      ),
     );
   }
 }
