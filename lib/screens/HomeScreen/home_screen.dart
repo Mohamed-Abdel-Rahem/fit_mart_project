@@ -1,5 +1,4 @@
 // screens/home_screen.dart
-// ignore_for_file: deprecated_member_use
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fitsmart/screens/HomeScreen/size_calculator_screen.dart';
@@ -8,6 +7,7 @@ import 'package:fitsmart/screens/VirtualDressRoomScreen/virtual_dress_room_scree
 import 'package:fitsmart/screens/ai_stylist_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:fitsmart/app_routes.dart';
+import 'dart:math' as math;
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,89 +16,47 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
-    with TickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+  late AnimationController _mainController;
   late AnimationController _pulseController;
-  late AnimationController _pageController;
-  late AnimationController _cardsController;
-  late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  late Animation<double> _scaleAnimation;
 
   @override
   void initState() {
     super.initState();
-    
-    // Pulse animation for avatar
-    _pulseController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
-    )..repeat(reverse: true);
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
 
-    // Page entrance animation
-    _pageController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    )..forward();
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _pageController, curve: Curves.easeIn),
-    );
-    _slideAnimation = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
-      CurvedAnimation(parent: _pageController, curve: Curves.easeOut),
-    );
-
-    // Cards stagger animation
-    _cardsController = AnimationController(
+    _mainController = AnimationController(
       duration: const Duration(milliseconds: 1200),
       vsync: this,
-    )..forward();
+    );
+
+    _pulseController = AnimationController(
+      duration: const Duration(seconds: 4),
+      vsync: this,
+    )..repeat();
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _mainController, curve: const Interval(0.0, 0.6, curve: Curves.easeIn)),
+    );
+
+    _slideAnimation = Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(
+      CurvedAnimation(parent: _mainController, curve: const Interval(0.0, 0.8, curve: Curves.easeOutBack)),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.9, end: 1.0).animate(
+      CurvedAnimation(parent: _mainController, curve: const Interval(0.0, 0.8, curve: Curves.easeOutBack)),
+    );
+
+    _mainController.forward();
   }
 
   @override
   void dispose() {
+    _mainController.dispose();
     _pulseController.dispose();
-    _pageController.dispose();
-    _cardsController.dispose();
     super.dispose();
-  }
-
-  // Helper widget to build feature cards with stagger animation
-  Widget _buildFeatureCard({
-    required BuildContext context,
-    required ColorScheme colorScheme,
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Widget targetScreen,
-    required int cardIndex,
-  }) {
-    // Calculate stagger delay for each card
-    final staggerDelay = cardIndex * 0.15;
-    final delayedAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _cardsController,
-        curve: Interval(staggerDelay, staggerDelay + 0.4, curve: Curves.easeOut),
-      ),
-    );
-
-    return SlideTransition(
-      position: Tween<Offset>(begin: const Offset(0.3, 0), end: Offset.zero)
-          .animate(delayedAnimation),
-      child: FadeTransition(
-        opacity: delayedAnimation,
-        child: _CardWithHoverEffect(
-          context: context,
-          colorScheme: colorScheme,
-          icon: icon,
-          title: title,
-          subtitle: subtitle,
-          targetScreen: targetScreen,
-        ),
-      ),
-    );
   }
 
   @override
@@ -106,450 +64,324 @@ class _HomeScreenState extends State<HomeScreen>
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final user = FirebaseAuth.instance.currentUser;
-
-    // Get user's display name or fallback to 'User'
     final userName = user?.displayName ?? user?.email?.split('@')[0] ?? 'User';
-    // Check for user photo URL
     final userPhotoUrl = user?.photoURL;
 
     return Scaffold(
-      // Set background color to the standard surface color
-      backgroundColor: colorScheme.background,
-      appBar: AppBar(
-        // Use primaryContainer for consistent AppBar background
-        backgroundColor: colorScheme.primaryContainer,
-        elevation: 4,
-        title: Text(
-          'FitSmart',
-          style: theme.textTheme.titleLarge?.copyWith(
-            color: colorScheme.onPrimaryContainer,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        actions: [
-          ScaleTransition(
-            scale: Tween<double>(begin: 0.8, end: 1.0).animate(
-              CurvedAnimation(
-                parent: _pageController,
-                curve: const Interval(0.5, 1.0, curve: Curves.elasticOut),
-              ),
-            ),
-            child: IconButton(
-              icon: Icon(Icons.settings, color: colorScheme.onPrimaryContainer),
-              onPressed: () {
-                Navigator.pushNamed(context, AppRoutes.settings);
-              },
-              tooltip: 'Settings',
-            ),
-          ),
-        ],
-      ),
-      body: Center(
-        child: SingleChildScrollView(
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: SlideTransition(
-              position: _slideAnimation,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // HEADER AREA: With enhanced animations
-                  _buildHeaderSection(
-                    context: context,
-                    colorScheme: colorScheme,
-                    userName: userName,
-                    userPhotoUrl: userPhotoUrl,
-                    fadeAnimation: _fadeAnimation,
-                    pulseAnimation: _scaleAnimation,
+      backgroundColor: colorScheme.surface,
+      body: Stack(
+        children: [
+          Positioned.fill(child: _PremiumBackground(colorScheme: colorScheme)),
+          CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              SliverAppBar(
+                expandedHeight: 120,
+                floating: true,
+                pinned: true,
+                elevation: 0,
+                backgroundColor: Colors.transparent,
+                flexibleSpace: FlexibleSpaceBar(
+                  centerTitle: true,
+                  title: Text(
+                    'FitSmart',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      color: colorScheme.onSurface,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.2,
+                    ),
                   ),
-
-                  const SizedBox(height: 20),
-
-                  // FEATURE 1: Virtual Try-On Studio
-                  _buildFeatureCard(
-                    context: context,
-                    colorScheme: colorScheme,
-                    icon: Icons.auto_fix_high,
-                    title: 'Virtual Try-On Studio',
-                    subtitle: 'Seamlessly try on new clothes using AI generation.',
-                    targetScreen: const VirtualTryOnScreen(),
-                    cardIndex: 0,
+                ),
+                actions: [
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: IconButton(
+                      onPressed: () => Navigator.pushNamed(context, AppRoutes.settings),
+                      icon: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: colorScheme.surfaceVariant.withOpacity(0.5),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.settings_outlined, color: colorScheme.onSurface),
+                      ),
+                    ),
                   ),
-
-                  // FEATURE 2: AI Stylist
-                  _buildFeatureCard(
-                    context: context,
-                    colorScheme: colorScheme,
-                    icon: Icons.brush_outlined,
-                    title: 'AI Stylist',
-                    subtitle:
-                        'Get personalized outfit recommendations and styling tips.',
-                    targetScreen: const AIStylistScreen(),
-                    cardIndex: 1,
-                  ),
-
-                  // FEATURE 3: Virtual Dress Room
-                  _buildFeatureCard(
-                    context: context,
-                    colorScheme: colorScheme,
-                    icon: Icons.checkroom,
-                    title: 'Virtual Dress Room',
-                    subtitle:
-                        'Manage and view all your saved garments in one place.',
-                    targetScreen: const VirtualDressRoomScreen(),
-                    cardIndex: 2,
-                  ),
-
-                  // FEATURE 4: Smart Size Calculator
-                  _buildFeatureCard(
-                    context: context,
-                    colorScheme: colorScheme,
-                    icon: Icons.straighten,
-                    title: 'Smart Size Calculator',
-                    subtitle: 'Enter your measurements for perfect fits.',
-                    targetScreen: const SizeCalculatorScreen(),
-                    cardIndex: 3,
-                  ),
-
-                  const SizedBox(height: 50),
                 ],
               ),
-            ),
+              SliverToBoxAdapter(
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: ScaleTransition(
+                    scale: _scaleAnimation,
+                    child: SlideTransition(
+                      position: _slideAnimation,
+                      child: Column(
+                        children: [
+                          _buildPremiumHeader(userName, userPhotoUrl, colorScheme, theme),
+                          const SizedBox(height: 24),
+                          _buildFeatureGrid(context, colorScheme),
+                          const SizedBox(height: 100),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ),
+        ],
       ),
     );
   }
 
-  // Header section widget
-  Widget _buildHeaderSection({
-    required BuildContext context,
-    required ColorScheme colorScheme,
-    required String userName,
-    required String? userPhotoUrl,
-    required Animation<double> fadeAnimation,
-    required Animation<double> pulseAnimation,
-  }) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
-      color: colorScheme.surface,
-      child: Column(
-        children: [
-          // Animated User Avatar with Glow Effect
-          ScaleTransition(
-            scale: pulseAnimation,
-            child: Stack(
+  Widget _buildPremiumHeader(String name, String? url, ColorScheme scheme, ThemeData theme) {
+    return AnimatedBuilder(
+      animation: _pulseController,
+      builder: (context, child) {
+        return Column(
+          children: [
+            Stack(
               alignment: Alignment.center,
               children: [
-                // Glow background
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: colorScheme.primary.withOpacity(0.3),
-                        blurRadius: 20,
-                        spreadRadius: 5,
+                ...List.generate(2, (index) {
+                  return Transform.scale(
+                    scale: 1.0 + (_pulseController.value * 0.4),
+                    child: Container(
+                      width: 90 + (index * 20),
+                      height: 90 + (index * 20),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: scheme.primary.withOpacity(0.15 - (index * 0.05)),
+                          width: 2,
+                        ),
                       ),
-                    ],
+                    ),
+                  );
+                }),
+                Hero(
+                  tag: 'user_avatar',
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: scheme.primary, width: 2),
+                    ),
+                    child: CircleAvatar(
+                      radius: 40,
+                      backgroundColor: scheme.primaryContainer,
+                      backgroundImage: url != null ? NetworkImage(url) : null,
+                      child: url == null ? Icon(Icons.person_outline, size: 40, color: scheme.primary) : null,
+                    ),
                   ),
-                ),
-                // Avatar
-                CircleAvatar(
-                  radius: 35,
-                  backgroundColor: colorScheme.primary,
-                  backgroundImage: userPhotoUrl != null
-                      ? NetworkImage(userPhotoUrl)
-                      : null,
-                  child: userPhotoUrl == null
-                      ? Icon(
-                          Icons.person,
-                          size: 35,
-                          color: colorScheme.onPrimary,
-                        )
-                      : null,
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 20),
-
-          // Welcome message with typewriter-like fade
-          FadeTransition(
-            opacity: fadeAnimation,
-            child: Text(
-              'Hello, $userName!',
-              style: theme.textTheme.headlineMedium?.copyWith(
-                color: colorScheme.onSurface,
+            const SizedBox(height: 24),
+            Text(
+              'Welcome back,',
+              style: theme.textTheme.bodyLarge?.copyWith(color: scheme.onSurfaceVariant),
+            ),
+            Text(
+              name,
+              style: theme.textTheme.displaySmall?.copyWith(
+                color: scheme.onSurface,
                 fontWeight: FontWeight.bold,
               ),
-              textAlign: TextAlign.center,
             ),
-          ),
-          const SizedBox(height: 8),
-
-          // Subtitle with delayed fade
-          FadeTransition(
-            opacity: Tween<double>(begin: 0.0, end: 1.0).animate(
-              CurvedAnimation(
-                parent: _pageController,
-                curve: const Interval(0.2, 0.8, curve: Curves.easeIn),
-              ),
-            ),
-            child: Text(
-              'Ready to explore your smart fashion features?',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ],
-      ),
+          ],
+        );
+      },
     );
   }
-}
 
-/// Stateful card widget with hover/tap animation effects
-class _CardWithHoverEffect extends StatefulWidget {
-  final BuildContext context;
-  final ColorScheme colorScheme;
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Widget targetScreen;
+  Widget _buildFeatureGrid(BuildContext context, ColorScheme scheme) {
+    final features = [
+      _FeatureData(Icons.auto_fix_high, 'Virtual Try-On', 'AI-powered fitting room', const VirtualTryOnScreen()),
+      _FeatureData(Icons.brush_outlined, 'AI Stylist', 'Personalized recommendations', const AIStylistScreen()),
+      _FeatureData(Icons.checkroom, 'Dress Room', 'Manage your collection', const VirtualDressRoomScreen()),
+      _FeatureData(Icons.straighten, 'Size Calc', 'Find your perfect fit', const SizeCalculatorScreen()),
+    ];
 
-  const _CardWithHoverEffect({
-    required this.context,
-    required this.colorScheme,
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.targetScreen,
-  });
-
-  @override
-  State<_CardWithHoverEffect> createState() => _CardWithHoverEffectState();
-}
-
-class _CardWithHoverEffectState extends State<_CardWithHoverEffect>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _hoverController;
-  late Animation<double> _hoverScale;
-  late Animation<double> _hoverShadow;
-  late Animation<Color?> _hoverColor;
-
-  @override
-  void initState() {
-    super.initState();
-    _hoverController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-
-    _hoverScale = Tween<double>(begin: 1.0, end: 1.02).animate(
-      CurvedAnimation(parent: _hoverController, curve: Curves.easeOut),
-    );
-
-    _hoverShadow = Tween<double>(begin: 6, end: 12).animate(
-      CurvedAnimation(parent: _hoverController, curve: Curves.easeOut),
-    );
-
-    _hoverColor = ColorTween(
-      begin: widget.colorScheme.surfaceContainerHigh,
-      end: widget.colorScheme.surfaceContainer,
-    ).animate(CurvedAnimation(parent: _hoverController, curve: Curves.easeOut));
-  }
-
-  @override
-  void dispose() {
-    _hoverController.dispose();
-    super.dispose();
-  }
-
-  void _onHoverEnter() {
-    _hoverController.forward();
-  }
-
-  void _onHoverExit() {
-    _hoverController.reverse();
-  }
-
-  void _onTap() {
-    // Scale animation on tap
-    _hoverController.forward().then((_) {
-      _hoverController.reverse();
-    });
-
-    // Navigate to target screen
-    Navigator.push(
-      widget.context,
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            widget.targetScreen,
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(
-            opacity: animation,
-            child: SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0, 0.2),
-                end: Offset.zero,
-              ).animate(animation),
-              child: child,
-            ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          childAspectRatio: 0.85,
+        ),
+        itemCount: features.length,
+        itemBuilder: (context, index) {
+          return _PremiumFeatureCard(
+            data: features[index],
+            index: index,
+            parentController: _mainController,
+            colorScheme: scheme,
           );
         },
       ),
     );
   }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return MouseRegion(
-      onEnter: (_) => _onHoverEnter(),
-      onExit: (_) => _onHoverExit(),
-      child: ScaleTransition(
-        scale: _hoverScale,
-        child: AnimatedBuilder(
-          animation: _hoverShadow,
-          builder: (context, child) {
-            return Card(
-              margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-              color: _hoverColor.value,
-              elevation: _hoverShadow.value,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: InkWell(
-                onTap: _onTap,
-                highlightColor:
-                    widget.colorScheme.primary.withOpacity(0.1),
-                splashColor: widget.colorScheme.primary.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(16),
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Row(
-                    children: [
-                      // Animated icon container
-                      _AnimatedIconContainer(
-                        icon: widget.icon,
-                        colorScheme: widget.colorScheme,
-                      ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              widget.title,
-                              style: theme.textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: widget.colorScheme.onSurface,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              widget.subtitle,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: widget.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Animated arrow
-                      TweenAnimationBuilder<double>(
-                        tween: Tween(begin: 0.0, end: 1.0),
-                        duration: const Duration(milliseconds: 600),
-                        curve: Curves.easeOut,
-                        builder: (context, value, child) {
-                          return Transform.translate(
-                            offset: Offset(value * 4, 0),
-                            child: Icon(
-                              Icons.arrow_forward_ios,
-                              size: 18,
-                              color: widget.colorScheme.outline,
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
 }
 
-/// Animated icon container
-class _AnimatedIconContainer extends StatefulWidget {
-  final IconData icon;
+class _PremiumFeatureCard extends StatefulWidget {
+  final _FeatureData data;
+  final int index;
+  final AnimationController parentController;
   final ColorScheme colorScheme;
 
-  const _AnimatedIconContainer({
-    required this.icon,
+  const _PremiumFeatureCard({
+    required this.data,
+    required this.index,
+    required this.parentController,
     required this.colorScheme,
   });
 
   @override
-  State<_AnimatedIconContainer> createState() => _AnimatedIconContainerState();
+  State<_PremiumFeatureCard> createState() => _PremiumFeatureCardState();
 }
 
-class _AnimatedIconContainerState extends State<_AnimatedIconContainer>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _rotateController;
-
-  @override
-  void initState() {
-    super.initState();
-    _rotateController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-  }
-
-  @override
-  void dispose() {
-    _rotateController.dispose();
-    super.dispose();
-  }
-
-  void _startRotation() {
-    _rotateController.forward(from: 0.0);
-  }
+class _PremiumFeatureCardState extends State<_PremiumFeatureCard> {
+  bool _isPressed = false;
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => _startRotation(),
-      child: RotationTransition(
-        turns: Tween<double>(begin: 0, end: 0.25).animate(
-          CurvedAnimation(parent: _rotateController, curve: Curves.easeOut),
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: widget.colorScheme.primaryContainer,
-            borderRadius: BorderRadius.circular(12),
+    final staggerAnimation = CurvedAnimation(
+      parent: widget.parentController,
+      curve: Interval(0.4 + (widget.index * 0.1), 1.0, curve: Curves.easeOutCubic),
+    );
+
+    return AnimatedBuilder(
+      animation: staggerAnimation,
+      builder: (context, child) {
+        return Opacity(
+          opacity: staggerAnimation.value,
+          child: Transform.translate(
+            offset: Offset(0, 50 * (1 - staggerAnimation.value)),
+            child: child,
           ),
-          child: Icon(
-            widget.icon,
-            size: 40,
-            color: widget.colorScheme.primary,
+        );
+      },
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapUp: (_) => setState(() => _isPressed = false),
+        onTapCancel: () => setState(() => _isPressed = false),
+        onTap: () {
+          Navigator.push(
+            context,
+            PageRouteBuilder(
+              transitionDuration: const Duration(milliseconds: 500),
+              pageBuilder: (context, animation, secondaryAnimation) => widget.data.target,
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: ScaleTransition(
+                    scale: Tween<double>(begin: 0.95, end: 1.0).animate(animation),
+                    child: child,
+                  ),
+                );
+              },
+            ),
+          );
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          transform: Matrix4.identity()..scale(_isPressed ? 0.96 : 1.0),
+          decoration: BoxDecoration(
+            color: widget.colorScheme.surface,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: widget.colorScheme.outlineVariant.withOpacity(0.5)),
+            boxShadow: [
+              BoxShadow(
+                color: widget.colorScheme.shadow.withOpacity(_isPressed ? 0.02 : 0.05),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: widget.colorScheme.primaryContainer.withOpacity(0.4),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(widget.data.icon, color: widget.colorScheme.primary, size: 28),
+                ),
+                const Spacer(),
+                Text(
+                  widget.data.title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: widget.colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  widget.data.subtitle,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: widget.colorScheme.onSurfaceVariant,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+}
+
+class _PremiumBackground extends StatelessWidget {
+  final ColorScheme colorScheme;
+  const _PremiumBackground({required this.colorScheme});
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _BackgroundPainter(
+        color1: colorScheme.primary.withOpacity(0.05),
+        color2: colorScheme.secondary.withOpacity(0.03),
+      ),
+    );
+  }
+}
+
+class _BackgroundPainter extends CustomPainter {
+  final Color color1;
+  final Color color2;
+
+  _BackgroundPainter({required this.color1, required this.color2});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..maskFilter = const MaskFilter.blur(BlurStyle.normal, 50);
+
+    canvas.drawCircle(Offset(size.width * 0.1, size.height * 0.1), 150, paint..color = color1);
+    canvas.drawCircle(Offset(size.width * 0.9, size.height * 0.5), 200, paint..color = color2);
+    canvas.drawCircle(Offset(size.width * 0.2, size.height * 0.9), 180, paint..color = color1.withOpacity(0.03));
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _FeatureData {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Widget target;
+
+  _FeatureData(this.icon, this.title, this.subtitle, this.target);
 }
