@@ -699,11 +699,20 @@ class _CustomImagePickerState extends State<CustomImagePicker> {
           ),
         GestureDetector(
           onTap: _pickImage,
-          child: CircleAvatar(
-            backgroundColor: Colors.white,
-            radius: widget.imageSize ?? 100,
-            backgroundImage: _getImageProvider(),
-            child: _isUsingDefaultImage() ? null : null,
+          child: Stack(
+            children: [
+              CircleAvatar(
+                backgroundColor: Colors.white,
+                radius: widget.imageSize ?? 100,
+                backgroundImage: _getImageProvider(),
+                child: _isUsingDefaultImage() ? null : null,
+              ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Icon(Icons.camera_alt, color: colorScheme.primary),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 16),
