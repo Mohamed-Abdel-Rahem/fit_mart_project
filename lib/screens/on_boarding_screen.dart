@@ -57,30 +57,44 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         curve: Curves.easeInOut,
       );
     } else {
-      Navigator.pushReplacementNamed(context, AppRoutes.signup);
+      _pushWithAnimation(AppRoutes.signup);
     }
   }
 
-  // void _goPrevious() {
-  //   if (_currentPage > 0) {
-  //     _pageController.previousPage(
-  //       duration: const Duration(milliseconds: 300),
-  //       curve: Curves.easeInOut,
-  //     );
-  //   }
-  // }
-
   void _skip() {
-    Navigator.pushReplacementNamed(context, AppRoutes.signup);
+    _pushWithAnimation(AppRoutes.signup);
+  }
+
+  void _pushWithAnimation(String routeName) {
+    Navigator.pushReplacement(
+      context,
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 800),
+        pageBuilder: (context, animation, secondaryAnimation) {
+          final routeBuilder = appRoutes[routeName];
+          return routeBuilder != null ? routeBuilder(context) : const Scaffold();
+        },
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: animation.drive(
+                Tween(begin: const Offset(0.0, 0.05), end: Offset.zero)
+                    .chain(CurveTween(curve: Curves.easeOut)),
+              ),
+              child: child,
+            ),
+          );
+        },
+      ),
+    );
   }
 
   Widget _buildPageIndicator(ColorScheme colorScheme) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        // Background color for the indicator row
         color: colorScheme.surfaceContainerHighest.withAlpha(179),
-        // Removed borderRadius
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -93,7 +107,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             margin: const EdgeInsets.symmetric(horizontal: 4),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              // Primary color for active dot, high-contrast surface color for inactive
               color: isActive ? colorScheme.primary : colorScheme.onPrimary,
             ),
           );
@@ -132,9 +145,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       children: [
         Column(
           children: [
-            // Upper half with image as background (45% height)
             Container(
-              height: screenHeight * 0.4, // Increased height for dominant image
+              height: screenHeight * 0.4,
               decoration: BoxDecoration(
                 image: DecorationImage(
                   image: AssetImage(data.imagePath),
@@ -142,15 +154,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
               ),
             ),
-
-            // Content Section (bottom area with text and buttons)
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
                   color: colorScheme.primaryContainer,
-                  // Removed borderRadius for sharp top corners
-
-                  // Added subtle shadow for depth and separation
                   boxShadow: [
                     BoxShadow(
                       color: colorScheme.onSurface.withAlpha(50),
@@ -167,8 +174,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Center(child: _buildPageIndicator(colorScheme)),
-                    const SizedBox(height: 32), // Increased spacing
-                    // Title
+                    const SizedBox(height: 32),
                     Text(
                       data.title,
                       style: theme.textTheme.headlineMedium?.copyWith(
@@ -178,8 +184,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 16),
-
-                    // Sub-Description
                     if (data.subDescription != null) ...[
                       Text(
                         data.subDescription!,
@@ -190,8 +194,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                       const SizedBox(height: 12),
                     ],
-
-                    // Main Description
                     Text(
                       data.description,
                       style: theme.textTheme.bodyLarge?.copyWith(
@@ -199,14 +201,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                       textAlign: TextAlign.center,
                     ),
-
                     const Spacer(),
-
-                    // Buttons
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // Primary Action Button (Next / Get Started)
                         SizedBox(
                           width: screenWidth * 0.7,
                           height: 56,
@@ -216,8 +214,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
-                              elevation:
-                                  8, // Added elevation for primary button
+                              elevation: 8,
                               shadowColor: colorScheme.primary.withAlpha(150),
                             ),
                             onPressed: _goNext,
@@ -232,23 +229,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             ),
                           ),
                         ),
-
-                        // // Secondary Action Button (Back)
-                        // if (_currentPage > 0)
-                        //   SizedBox(
-                        //     width: screenWidth * 0.7,
-                        //     height: 56,
-                        //     child: TextButton(
-                        //       onPressed: _goPrevious,
-                        //       child: Text(
-                        //         'Back',
-                        //         style: theme.textTheme.titleLarge?.copyWith(
-                        //           color: colorScheme.primary,
-                        //           fontWeight: FontWeight.bold,
-                        //         ),
-                        //       ),
-                        //     ),
-                        //   ),
                       ],
                     ),
                   ],
@@ -257,7 +237,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
           ],
         ),
-        // Skip Button overlaid on the upper half image
         Positioned(
           top: 16,
           left: 16,
@@ -267,14 +246,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               'Skip',
               style: theme.textTheme.labelLarge?.copyWith(
                 fontSize: 18,
-                // Use onInverseSurface for max contrast over the background image
                 color: colorScheme.secondary,
                 fontWeight: FontWeight.bold,
-                // Add shadow for better visibility over light/busy parts of the image
                 shadows: [
                   Shadow(
                     blurRadius: 5.0,
-                    // Replaced withAlpha(128) to fix deprecation warning
                     color: Colors.black.withAlpha(128),
                     offset: const Offset(0, 1),
                   ),
