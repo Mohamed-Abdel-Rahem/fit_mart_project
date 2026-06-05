@@ -34,3 +34,10 @@ ios/Flutter/Flutter.podspec
 .DS_Store
 Thumbs.db
 *.hprof
+
+
+# Android signing files
+android/key.properties
+android/app/upload-keystore.jks
+*.jks
+*.keystore
