@@ -74,6 +74,22 @@
       },
       "oauth_client": [
         {
+          "client_id": "962901246025-e23n3nv58p7vgkjs75hrd4d8057q3o4o.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mohamedabdelrahem.fitsmart",
+            "certificate_hash": "92f9a495771c663918eda2148175460402177541"
+          }
+        },
+        {
+          "client_id": "962901246025-tdfv528fbtoom97mps9nduvdkg8a8649.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mohamedabdelrahem.fitsmart",
+            "certificate_hash": "5a0a968d46377ba5e4b2eaabbc42cef5dceb9c25"
+          }
+        },
+        {
           "client_id": "962901246025-1g6qvc81cv1aaubeelk5paj877dnj3pl.apps.googleusercontent.com",
           "client_type": 3
         }

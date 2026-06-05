@@ -1,4 +1,4 @@
-package com.example.fitsmart
+package com.mohamedabdelrahem.fitsmart
 
 import io.flutter.embedding.android.FlutterActivity
 
