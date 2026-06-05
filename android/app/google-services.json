@@ -22,6 +22,58 @@
           }
         },
         {
+          "client_id": "962901246025-bn86acg72rnm7kg2brgh32shae7p39t9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.fitsmart",
+            "certificate_hash": "92f9a495771c663918eda2148175460402177541"
+          }
+        },
+        {
+          "client_id": "962901246025-ro9e3bke129bh4rchactichepcjqi71l.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.fitsmart",
+            "certificate_hash": "176a6f80e5e28b3f96c012cd755b17620682f106"
+          }
+        },
+        {
+          "client_id": "962901246025-1g6qvc81cv1aaubeelk5paj877dnj3pl.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB3BghG8IjqvMnfZvvCSjn1nAE3BHBjQ6s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "962901246025-1g6qvc81cv1aaubeelk5paj877dnj3pl.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "962901246025-0cu711lg16hq5esit3tv581fdhtt65vu.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.fitsmart"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:962901246025:android:eadb8e0a1e67e85f7fff98",
+        "android_client_info": {
+          "package_name": "com.mohamedabdelrahem.fitsmart"
+        }
+      },
+      "oauth_client": [
+        {
           "client_id": "962901246025-1g6qvc81cv1aaubeelk5paj877dnj3pl.apps.googleusercontent.com",
           "client_type": 3
         }
