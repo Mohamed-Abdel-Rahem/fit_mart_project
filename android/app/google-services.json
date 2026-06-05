@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "962901246025",
+    "project_id": "fitsmart-a3686",
+    "storage_bucket": "fitsmart-a3686.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:962901246025:android:e3278f10fcef00987fff98",
+        "android_client_info": {
+          "package_name": "com.example.fitsmart"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "962901246025-90f8vtf24bug3bgipq4lcccfjt95vjlt.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.fitsmart",
+            "certificate_hash": "3aef12f0f99860920af23c4bb141bee5d09397bf"
+          }
+        },
+        {
+          "client_id": "962901246025-1g6qvc81cv1aaubeelk5paj877dnj3pl.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB3BghG8IjqvMnfZvvCSjn1nAE3BHBjQ6s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "962901246025-1g6qvc81cv1aaubeelk5paj877dnj3pl.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "962901246025-0cu711lg16hq5esit3tv581fdhtt65vu.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.fitsmart"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
