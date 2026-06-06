@@ -298,11 +298,15 @@ class _SignUpScreenState extends State<SignUpScreen>
         controller: controller,
         obscureText: obscure,
         keyboardType: type,
+        cursorColor: colorScheme.primary,
+        style: TextStyle(color: colorScheme.onSurface),
         decoration: InputDecoration(
           filled: true,
           fillColor: colorScheme.surfaceContainerLow,
           hintText: hint,
+          hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
           suffixIcon: suffix,
+          suffixIconColor: colorScheme.onSurfaceVariant,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide.none,

@@ -111,37 +111,31 @@ class _SettingsScreenState extends State<SettingsScreen>
     }
   }
 
-void _handleLogout() async {
-  await _authService.signOut();
+  void _handleLogout() async {
+    await _authService.signOut();
 
-  Navigator.pushNamedAndRemoveUntil(
-    context,
-    AppRoutes.login,
-    (route) => false,
-  );
-}
-
-Future<void> _handleShareApp() async {
-  try {
-    await SharePlus.instance.share(
-      ShareParams(
-        subject: 'FitSmart App',
-        text: 'Check out FitSmart app 💪',
-      ),
-    );
-  } catch (e) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      _buildSnackBar(
-        message: 'Error sharing app: $e',
-        isError: true,
-      ),
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      AppRoutes.login,
+      (route) => false,
     );
   }
-}
 
-Future<String?> _promptForPassword() async {
+  Future<void> _handleShareApp() async {
+    try {
+      await SharePlus.instance.share(
+        ShareParams(subject: 'FitSmart App', text: 'Check out FitSmart app 💪'),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        _buildSnackBar(message: 'Error sharing app: $e', isError: true),
+      );
+    }
+  }
+
+  Future<String?> _promptForPassword() async {
     final controller = TextEditingController();
 
     return showGeneralDialog<String>(
@@ -152,6 +146,8 @@ Future<String?> _promptForPassword() async {
       transitionDuration: const Duration(milliseconds: 450),
       pageBuilder: (_, _, _) => const SizedBox.shrink(),
       transitionBuilder: (_, animation, __, ___) {
+        final colorScheme = Theme.of(context).colorScheme;
+        final isDark = colorScheme.brightness == Brightness.dark;
         final curved = Curves.easeOutBack.transform(animation.value);
 
         return Transform.scale(
@@ -160,9 +156,9 @@ Future<String?> _promptForPassword() async {
             opacity: animation.value,
             child: AlertDialog(
               elevation: 0,
-              backgroundColor: Theme.of(
-                context,
-              ).colorScheme.surface.withOpacity(0.88),
+              backgroundColor: isDark
+                  ? colorScheme.surfaceContainerHigh
+                  : colorScheme.surface.withOpacity(0.88),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30),
               ),
@@ -174,10 +170,7 @@ Future<String?> _promptForPassword() async {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: LinearGradient(
-                        colors: [
-                          Theme.of(context).colorScheme.primary,
-                          Theme.of(context).colorScheme.tertiary,
-                        ],
+                        colors: [colorScheme.primary, colorScheme.tertiary],
                       ),
                     ),
                     child: const Icon(Icons.lock_rounded, color: Colors.white),
@@ -194,13 +187,19 @@ Future<String?> _promptForPassword() async {
               content: TextField(
                 controller: controller,
                 obscureText: true,
-                style: Theme.of(context).textTheme.bodyLarge,
+                cursorColor: colorScheme.primary,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(color: colorScheme.onSurface),
                 decoration: InputDecoration(
                   hintText: 'Password',
+                  hintStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                   filled: true,
-                  fillColor: Theme.of(
-                    context,
-                  ).colorScheme.surfaceContainerHighest.withOpacity(0.7),
+                  fillColor: isDark
+                      ? colorScheme.surfaceContainerHighest
+                      : colorScheme.surfaceContainerHighest.withOpacity(0.7),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 20,
                     vertical: 18,
@@ -249,6 +248,8 @@ Future<String?> _promptForPassword() async {
       transitionDuration: const Duration(milliseconds: 450),
       pageBuilder: (_, _, _) => const SizedBox.shrink(),
       transitionBuilder: (_, animation, __, ___) {
+        final colorScheme = Theme.of(context).colorScheme;
+        final isDark = colorScheme.brightness == Brightness.dark;
         final curved = Curves.easeOutBack.transform(animation.value);
 
         return Transform.scale(
@@ -257,9 +258,9 @@ Future<String?> _promptForPassword() async {
             opacity: animation.value,
             child: AlertDialog(
               elevation: 0,
-              backgroundColor: Theme.of(
-                context,
-              ).colorScheme.surface.withOpacity(0.9),
+              backgroundColor: isDark
+                  ? colorScheme.surfaceContainerHigh
+                  : colorScheme.surface.withOpacity(0.9),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30),
               ),
@@ -269,13 +270,11 @@ Future<String?> _promptForPassword() async {
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.error.withOpacity(0.15),
+                      color: colorScheme.error.withOpacity(0.15),
                     ),
                     child: Icon(
                       Icons.warning_amber_rounded,
-                      color: Theme.of(context).colorScheme.error,
+                      color: colorScheme.error,
                     ),
                   ),
                   const SizedBox(width: 14),
@@ -464,6 +463,10 @@ Future<String?> _promptForPassword() async {
 
   SnackBar _buildSnackBar({required String message, required bool isError}) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isDark = colorScheme.brightness == Brightness.dark;
+    final foregroundColor = isError
+        ? colorScheme.onErrorContainer
+        : (isDark ? colorScheme.onPrimaryContainer : colorScheme.onSurface);
 
     return SnackBar(
       elevation: 0,
@@ -501,6 +504,7 @@ Future<String?> _promptForPassword() async {
                   isError
                       ? Icons.error_outline_rounded
                       : Icons.check_circle_outline_rounded,
+                  color: foregroundColor,
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -508,6 +512,7 @@ Future<String?> _promptForPassword() async {
                     message,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w700,
+                      color: foregroundColor,
                     ),
                   ),
                 ),
@@ -523,6 +528,19 @@ Future<String?> _promptForPassword() async {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final isDark = colorScheme.brightness == Brightness.dark;
+    final floatingSurfaceColor = isDark
+        ? colorScheme.surfaceContainerHigh.withOpacity(0.92)
+        : colorScheme.surface.withOpacity(0.7);
+    final floatingBorderColor = isDark
+        ? colorScheme.outlineVariant.withOpacity(0.32)
+        : colorScheme.outlineVariant.withOpacity(0.2);
+    final panelColor = isDark
+        ? colorScheme.surfaceContainerHigh.withOpacity(0.94)
+        : colorScheme.surface.withOpacity(0.7);
+    final panelBorderColor = isDark
+        ? colorScheme.outlineVariant.withOpacity(0.28)
+        : colorScheme.outlineVariant.withOpacity(0.15);
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -594,18 +612,18 @@ Future<String?> _promptForPassword() async {
                                 Container(
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(18),
-                                    color: colorScheme.surface.withOpacity(0.7),
+                                    color: floatingSurfaceColor,
                                     border: Border.all(
-                                      color: colorScheme.outlineVariant
-                                          .withOpacity(0.2),
+                                      color: floatingBorderColor,
                                     ),
                                   ),
                                   child: IconButton(
                                     onPressed: () {
                                       Navigator.pop(context);
                                     },
-                                    icon: const Icon(
+                                    icon: Icon(
                                       Icons.arrow_back_ios_new_rounded,
+                                      color: colorScheme.onSurface,
                                     ),
                                   ),
                                 ),
@@ -616,6 +634,7 @@ Future<String?> _promptForPassword() async {
                                       ?.copyWith(
                                         fontWeight: FontWeight.w900,
                                         letterSpacing: 0.5,
+                                        color: colorScheme.onSurface,
                                       ),
                                 ),
                                 const Spacer(),
@@ -681,11 +700,8 @@ Future<String?> _promptForPassword() async {
                                   padding: const EdgeInsets.all(20),
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(36),
-                                    color: colorScheme.surface.withOpacity(0.7),
-                                    border: Border.all(
-                                      color: colorScheme.outlineVariant
-                                          .withOpacity(0.15),
-                                    ),
+                                    color: panelColor,
+                                    border: Border.all(color: panelBorderColor),
                                     boxShadow: [
                                       BoxShadow(
                                         color: colorScheme.shadow.withOpacity(
@@ -791,7 +807,9 @@ Future<String?> _promptForPassword() async {
                                         title: 'Share App',
                                         icon: Icons.share_rounded,
                                         tooltip: 'Share this app with others',
-                                       onTap: () {_handleShareApp();},
+                                        onTap: () {
+                                          _handleShareApp();
+                                        },
                                       ),
                                       _buildSettingTile(
                                         index: 4,
@@ -838,6 +856,25 @@ Future<String?> _promptForPassword() async {
   }) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final isDark = colorScheme.brightness == Brightness.dark;
+    final tileGradientColors = isDanger
+        ? [
+            colorScheme.errorContainer.withOpacity(isDark ? 0.92 : 0.9),
+            colorScheme.error.withOpacity(isDark ? 0.16 : 0.08),
+          ]
+        : [
+            colorScheme.surfaceContainerHighest.withOpacity(
+              isDark ? 0.94 : 0.75,
+            ),
+            (isDark ? colorScheme.surfaceContainerHigh : colorScheme.surface)
+                .withOpacity(isDark ? 0.88 : 0.45),
+          ];
+    final tileBorderColor = isDanger
+        ? colorScheme.error.withOpacity(isDark ? 0.28 : 0.15)
+        : colorScheme.outlineVariant.withOpacity(isDark ? 0.26 : 0.12);
+    final trailingBackgroundColor = isDark
+        ? colorScheme.surfaceContainerHighest.withOpacity(0.88)
+        : colorScheme.surface.withOpacity(0.55);
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
@@ -881,23 +918,9 @@ Future<String?> _promptForPassword() async {
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: isDanger
-                          ? [
-                              colorScheme.errorContainer.withOpacity(0.9),
-                              colorScheme.error.withOpacity(0.08),
-                            ]
-                          : [
-                              colorScheme.surfaceContainerHighest.withOpacity(
-                                0.75,
-                              ),
-                              colorScheme.surface.withOpacity(0.45),
-                            ],
+                      colors: tileGradientColors,
                     ),
-                    border: Border.all(
-                      color: isDanger
-                          ? colorScheme.error.withOpacity(0.15)
-                          : colorScheme.outlineVariant.withOpacity(0.12),
-                    ),
+                    border: Border.all(color: tileBorderColor),
                     boxShadow: [
                       BoxShadow(
                         color: isDanger
@@ -951,7 +974,7 @@ Future<String?> _promptForPassword() async {
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: colorScheme.surface.withOpacity(0.55),
+                          color: trailingBackgroundColor,
                         ),
                         child: Icon(
                           Icons.arrow_forward_ios_rounded,
